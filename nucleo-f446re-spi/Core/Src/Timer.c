@@ -10,179 +10,58 @@
 *****************************************************************/
 void initTim2(void)
 {
-    //ENABLE TIM2 CLOCK
-    RCC->APB1RSTR |= (1 << 0);
+	// 1. Enable TIM2 clock (APB1)
+	RCC->APB1ENR |= (1 << 0);  // TIM2EN = 1
 
-    //LEAVE THE COUNTER FREQUENCY UNCHANGED
-    TIM2->PSC = 0;
+	// 2. Set prescaler (PSC)
+	// TIM2 clock = 84 MHz (APB1 Timer Clock) / (PSC + 1)
+	// Target: 1 ms tick => PSC = 8399 (since 84MHz / 8400 = 10kHz => 1 tick = 0.1ms)
+	TIM2->PSC = 8399;
 
-    //SET TIMER RELOAD VALUE
-    TIM2->ARR = (uint32_t)4000000;
+	// 3. Set Auto-Reload Register (ARR) for 1 second delay
+	// Since 1 tick = 0.1ms, to get 1000ms: ARR = 10000
+	TIM2->ARR = 10000;
 
-    //SET INITIAL COUNTER VALUE
-    TIM2->CNT = 0;
-
-    //ENABLE TIM2 COUNTER
-    TIM2->CR1 |= (1 << 0);
+	// 4. Enable counter
+	TIM2->CR1 |= (1 << 0);  // CEN = 1
 }
 
-/*****************************************************************
-* delay1Sec
-*
-* This function introduces a delay of 1 second approximately
-* by tracking the values in the CNT register of timer 2.
-* This function relies on the frequency of the microcontroller
-* to be accurate. The STM32L432KC runs at 4MHz by default so the
-* goalCount has been set to 4,000,000 to stop the count loop when
-* the counter variable reaches or exceeds that that number as 1
-* second (approx) would have passed.
-* The value of the goalCount therefore depends on the frequency
-* of the microcontroller.
-*****************************************************************/
+// Function to wait until 1 second passes
 void delay1Sec(void)
 {
-    /*HOLDS THE TOTAL COUNT FROM TM2_CNT REGISTER TO RECORD HOW
-    MUCH TIME ELAPSED.*/
-    unsigned int counter = 0;
-    //HOLDS THE COUNT FOR THE COUNTER TO COUNT TO.
-    unsigned int goalCount = 4000000;
-    //HOLDS THE MOST RECENT VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int currentCntVal = 0;
-    //HOLDS THE PREVIOUS VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int prevCntVal = 0;
-    //HOLDS RESULT OF CALCULATION BETWEEN CURRENT AND PREVIOUS COUNTS.
-    unsigned int countToAdd = 0;
+    // Wait for update flag (UIF) to be set
+    while (!(TIM2->SR & (1 << 0)));  // Wait for UIF = 1
 
-    //GET INITIAL VALUE OF CNT
-    prevCntVal = TIM2->CNT;
-
-    //LOOP UNTIL COUNTER IS EQUAL OR EXCEED GOAL COUNT
-    while(counter < goalCount)
-    {
-        //GET NEWEST COUNT
-        currentCntVal = TIM2->CNT;
-
-        //HANDLE SITUATION WHERE TIM2_CNT RESET
-        if(currentCntVal < prevCntVal)
-        {
-            //GET THE COUNT BEFORE THE CNT REGISTER RESET AND THEN
-            //ADD THE COUNT AFTER IT RESET TO GET ELAPSED COUNT
-            countToAdd = (4000000 - prevCntVal) + currentCntVal;
-        }
-        else
-        {
-            //SSUBTRACT CURRENT COUNT FROM PREVIOUS COUNT TO GET
-            //ELAPSED COUNT
-            countToAdd = currentCntVal - prevCntVal;
-        }
-
-        //ADD ELAPSED COUNT TO THE COUNTER
-        counter += countToAdd;
-
-        //CURRENT COUNT NOW BECOMES PREVIOUS COUNT
-        prevCntVal = currentCntVal;
-    }
+    // Clear update flag (UIF)
+    TIM2->SR &= ~(1 << 0);
 }
 
 
-/*****************************************************************
-* delay
-*
-* This function introduces a delay in milliseconds specified
-* by the 'ms' parameter.
-*****************************************************************/
 void delay(unsigned int ms)
 {
-    /*HOLDS THE TOTAL COUNT FROM TM2_CNT REGISTER TO RECORD HOW
-    MUCH TIME ELAPSED.*/
-    unsigned int counter = 0;
-    //HOLDS THE COUNT FOR THE COUNTER TO COUNT TO.
-    unsigned int goalCount = ms * 4000u;
-    //HOLDS THE MOST RECENT VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int currentCntVal = 0;
-    //HOLDS THE PREVIOUS VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int prevCntVal = 0;
-    //HOLDS RESULT OF CALCULATION BETWEEN CURRENT AND PREVIOUS COUNTS.
-    unsigned int countToAdd = 0;
+    // Calculate the number of ticks needed
+    uint32_t startTick = TIM2->CNT;
+    uint32_t ticksRequired = ms * 10000; // 1 ms = 10,000 ticks (0.1ms per tick)
 
-    //GET INITIAL VALUE OF CNT
-    prevCntVal = TIM2->CNT;
-
-    //LOOP UNTIL COUNTER IS EQUAL OR EXCEED GOAL COUNT
-    while(counter < goalCount)
+    while ((TIM2->CNT - startTick) < ticksRequired)
     {
-        //GET NEWEST COUNT
-        currentCntVal = TIM2->CNT;
-
-        //HANDLE SITUATION WHERE TIM2_CNT RESET
-        if(currentCntVal < prevCntVal)
-        {
-            //GET THE COUNT BEFORE THE CNT REGISTER RESET AND THEN
-            //ADD THE COUNT AFTER IT RESET TO GET ELAPSED COUNT
-            countToAdd = (4000000 - prevCntVal) + currentCntVal;
-        }
-        else
-        {
-            //SSUBTRACT CURRENT COUNT FROM PREVIOUS COUNT TO GET
-            //ELAPSED COUNT
-            countToAdd = currentCntVal - prevCntVal;
-        }
-
-        //ADD ELAPSED COUNT TO THE COUNTER
-        counter += countToAdd;
-
-        //CURRENT COUNT NOW BECOMES PREVIOUS COUNT
-        prevCntVal = currentCntVal;
+        // Wait until required time has elapsed
     }
 }
 
- /*****************************************************************
-* delayUs
-*
-* This function introduces a delay in microseconds specified
-* by the 'us' parameter.
-*****************************************************************/
+
 void delayUs(unsigned int us)
 {
-    /*HOLDS THE TOTAL COUNT FROM TM2_CNT REGISTER TO RECORD HOW
-    MUCH TIME ELAPSED.*/
-    unsigned int counter = 0;
-    //HOLDS THE COUNT FOR THE COUNTER TO COUNT TO.
-    unsigned int goalCount = us * 4;
-    //HOLDS THE MOST RECENT VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int currentCntVal = 0;
-    //HOLDS THE PREVIOUS VALUE OBTAINED FROM TIM2_CNT.
-    unsigned int prevCntVal = 0;
-    //HOLDS RESULT OF CALCULATION BETWEEN CURRENT AND PREVIOUS COUNTS.
-    unsigned int countToAdd = 0;
+    // Get initial TIM2 counter value
+    uint32_t startTick = TIM2->CNT;
 
-    //GET INITIAL VALUE OF CNT
-    prevCntVal = TIM2->CNT;
+    // Calculate the required number of ticks
+    uint32_t ticksRequired = us * 10; // 1 µs = 10 ticks (at 10 MHz timer clock)
 
-    //LOOP UNTIL COUNTER IS EQUAL OR EXCEED GOAL COUNT
-    while(counter < goalCount)
+    // Wait until the required delay has passed
+    while ((TIM2->CNT - startTick) < ticksRequired)
     {
-        //GET NEWEST COUNT
-        currentCntVal = TIM2->CNT;
-
-        //HANDLE SITUATION WHERE TIM2_CNT RESET
-        if(currentCntVal < prevCntVal)
-        {
-            //GET THE COUNT BEFORE THE CNT REGISTER RESET AND THEN
-            //ADD THE COUNT AFTER IT RESET TO GET ELAPSED COUNT
-            countToAdd = (4000000 - prevCntVal) + currentCntVal;
-        }
-        else
-        {
-            //SSUBTRACT CURRENT COUNT FROM PREVIOUS COUNT TO GET
-            //ELAPSED COUNT
-            countToAdd = currentCntVal - prevCntVal;
-        }
-
-        //ADD ELAPSED COUNT TO THE COUNTER
-        counter += countToAdd;
-
-        //CURRENT COUNT NOW BECOMES PREVIOUS COUNT
-        prevCntVal = currentCntVal;
+        // Busy wait until time has elapsed
     }
 }
+

@@ -1,0 +1,4 @@
+../Core/Src/Timer.c:4:6:initTim2	1
+../Core/Src/Timer.c:21:6:delay1Sec	3
+../Core/Src/Timer.c:31:6:delay	2
+../Core/Src/Timer.c:42:6:delayUs	2

@@ -3,29 +3,34 @@
 
 void initSPI(void);
 void initClocks(void);
-void configSPI1Pins(void);
+void configSPIPins(void);
 void setPinMode(void);
 void setAlternateFunction(void);
 void configSPI(void);
-uint8_t transferSPI(uint8_t tx_data);
+void initLED(void);
+void toggleLED(void);
+uint8_t transferSPI(uint8_t);
 
 
 int main(void){
-	// MPU9250 ADDRESS
-	uint8_t data[4] = {187, 188, 189, 190};
-
-	// STORE DATA RECEIVED FROM MPU)9250
-	uint8_t rxd = 0;
+//	// MPU9250 ADDRESS
+//	uint8_t data[4] = {187, 188, 189, 190};
+//
+//	// STORE DATA RECEIVED FROM MPU9250
+//	uint8_t rxd = 0;
 
 	// SET UP TIMER
 	initTim2();
-
-	// SETUP SPI MASTER
-	initSPI();
+	initLED();
+//
+//	// SETUP SPI MASTER
+//	initSPI();
 
 	while(1){
-		// WRITE TO SPI
-		rxd = transferSPI();
+//		 // WRITE TO SPI
+//		rxd = transferSPI(data[0]);
+//		delay(50);
+		toggleLED();
 	}
 }
 
@@ -119,6 +124,7 @@ void setPinMode(void){
     // RESET PIN MODES: First clear the existing pin mode configuration
     GPIOA->MODER &= ~(
     				 (3 << (2 * 4))   // Clear bits [9:8]   for PA4
+					|(3 << (2 * 5))	  // Clear bits [11:10]	for PA5 (LED)
                     |(3 << (2 * 6))   // Clear bits [13:12] for PA6
                     |(3 << (2 * 7))   // Clear bits [15:14] for PA7
                     );
@@ -127,10 +133,20 @@ void setPinMode(void){
     // CONFIGURE PIN MODES: Set pins to Alternate Function (AF) mode (binary '10')
     GPIOA->MODER |= (
     				 (2 << (2 * 4))    // Set PA4 (SSEL) to AF mode
+					|(1 << (5 * 2))	   // Set PA5 (LED) to Output mode
                     |(2 << (2 * 6))    // Set PA6 (MISO) to AF mode
                     |(2 << (2 * 7))    // Set PA7 (MOSI) to AF mode
                     );
     GPIOB->MODER |= (2 << (2 * 3));    // Set PB3 (SCLK) to AF mode
+
+    // LED Setup
+    GPIOA->OTYPER &= ~(1 << 5); // Push-pull mode
+
+    // Set PA5 speed to medium speed (optional, default is low)
+    GPIOA->OSPEEDR |= (1 << (5 * 2)); // Medium speed
+
+    // Disable pull-up/pull-down (optional, default is no pull-up/pull-down)
+    GPIOA->PUPDR &= ~(3 << (5 * 2)); // No pull-up, no pull-down
 }
 
 void setAlternateFunction(void){
@@ -163,7 +179,26 @@ void setAlternateFunction(void){
     GPIOB->AFR[0] |= (5 << (4 * 3));   // Set PB3 to AF5 (SPI1_SCLK)
 }
 
+void configSPIPins(void){
+	setPinMode();
+	setAlternateFunction();
+}
 
 void initSPI(void){
+	initClocks();
+	configSPIPins();
+	configSPI();
+}
 
+void initLED(void){
+	initClocks();
+	setPinMode();
+}
+
+void toggleLED(void){
+	// Toggle PA5 using BSRR (atomic operation)
+	GPIOA->BSRR = (1 << 5);     // Set PA5
+	delayUs(1);
+	GPIOA->BSRR = (1 << (5 + 16)); // Reset PA5
+	delayUs(1);
 }

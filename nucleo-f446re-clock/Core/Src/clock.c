@@ -32,7 +32,7 @@
 - Running at **180 MHz** allows for faster execution of instructions, better real-time performance, and higher peripheral speeds.
 - The correct prescaler settings ensure that peripherals do not exceed their maximum operating frequencies.
 */
-void configSysClock(void){
+void initSysClock(void){
     // 1. Enable High-Speed External (HSE) oscillator
     RCC->CR |= (1 << 16);
     // Wait until HSE is ready

@@ -48,22 +48,22 @@ void initSysClock(void){
     FLASH->ACR |= (7 << 8);
 
     // 5. Configure Flash latency (5 wait states for 180 MHz system clock)
-    FLASH->ACR &= ~(15 << 0); // Clear latency bits
     FLASH->ACR |= (5 << 0);   // Set 5 wait states
 
     // 6. Configure bus prescalers
     // AHB prescaler (not divided)
-    RCC->CFGR &= ~(8 << 4);
+    RCC->CFGR &= ~(1 << 7);
     // APB1 prescaler (divided by 4)
     RCC->CFGR &= ~(7 << 10);
     RCC->CFGR |= (5 << 10);
     // APB2 prescaler (divided by 2)
     RCC->CFGR &= ~(7 << 13);
-    RCC->CFGR |= (2 << 13);
+    RCC->CFGR |= (4 << 13);
 
     // 7. Configure PLL settings
-    RCC->PLLCFGR &= ~((1 << 15) - 1); // Clear PLLM and PLLN
-    RCC->PLLCFGR &= ~(3 << 16);       // Clear PLLP
+    RCC->PLLCFGR &= ~(0x3F); 								  // Clear PLLM
+    RCC->PLLCFGR &= ~(0x1FF << 6); 							  // Clear PLLN
+    RCC->PLLCFGR &= ~(3 << 16);      						  // Clear PLLP
     RCC->PLLCFGR |= (PLLM << 0) | (PLLN << 6) | (PLLP << 16); // Set PLLM, PLLN, and PLLP
 
     // 8. Select HSE as PLL source

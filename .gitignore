@@ -1,1 +1,10 @@
-/.metadata
+.metadata
+.vscode
+*prefs
+.cproject
+.project
+.mxproject
+.settings
+*.launch
+*.elf
+Debug

@@ -1,12 +1,13 @@
 #include "clock.h"
+#include "timer.h"
 #include "led.h"
 
 int main(void){
 	initSysClock();
+	initTIM6();
 	initLED();
 	while(1){
-		GPIOA->BSRR |= (1 <<5);
-		delay();
+		toggleLED();
+		msDelay(1000);
 	}
 }
-

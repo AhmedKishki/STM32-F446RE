@@ -1,4 +1,0 @@
-../Core/Src/Timer.c:4:6:initTim2	4	static
-../Core/Src/Timer.c:21:6:delay1Sec	16	static
-../Core/Src/Timer.c:31:6:delay	24	static
-../Core/Src/Timer.c:42:6:delayUs	24	static

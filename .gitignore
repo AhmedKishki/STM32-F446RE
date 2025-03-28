@@ -1,10 +1,13 @@
 .metadata
 .vscode
-*prefs
+*.prefs
 .cproject
 .project
 .mxproject
 .settings
+*.ioc
+*.ld
 *.launch
 *.elf
 Debug
+Drivers

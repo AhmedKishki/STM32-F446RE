@@ -1,0 +1,4 @@
+#include "stm32f446xx.h"
+
+void initGPIOA(void);
+

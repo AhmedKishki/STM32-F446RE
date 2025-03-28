@@ -1,4 +1,7 @@
 #include "led.h"
+/*
+	controls the LED on PA5
+*/
 
 void initLED(void) {
     // Enable clock for GPIOA (AHB1 peripheral)

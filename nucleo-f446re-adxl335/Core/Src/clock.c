@@ -1,9 +1,24 @@
-#include "clock.h"
+/**
+  * @brief  System Clock Configuration
+  *         The system Clock is configured as follow :
+  *            System Clock source            = PLL (HSE)
+  *            SYSCLK(Hz)                     = 180000000
+  *            HCLK(Hz)                       = 180000000
+  *            AHB Prescaler                  = 1
+  *            APB1 Prescaler                 = 4
+  *            APB2 Prescaler                 = 2
+  *            HSE Frequency(Hz)              = 8000000
+  *            PLL_M                          = 4
+  *            PLL_N                          = 180
+  *            PLL_P                          = 2
+  *            VDD(V)                         = 3.3
+  *            Main regulator output voltage  = Scale1 mode
+  *            Flash Latency(WS)              = 5
+  * @param  None
+  * @retval None
+  */
 
-// Define PLL configuration values
-#define PLLM    4   // PLLM: Division factor for the main PLL input clock
-#define PLLN    180 // PLLN: Main PLL multiplication factor
-#define PLLP    0   // PLLP: Main PLL division factor (PLLP = 2 when PLLP = 0 in register)
+#include "clock.h"
 
 /*
 ### Procedure Explanation:
@@ -32,52 +47,56 @@
 - Running at **180 MHz** allows for faster execution of instructions, better real-time performance, and higher peripheral speeds.
 - The correct prescaler settings ensure that peripherals do not exceed their maximum operating frequencies.
 */
-void initSysClock(void){
-    // 1. Enable High-Speed External (HSE) oscillator
-    RCC->CR |= (1 << 16);
-    // Wait until HSE is ready
-    while(!(RCC->CR & (1 << 17)));
 
-    // 2. Enable power interface clock
-    RCC->APB1ENR |= (1 << 28);
+void initCLK(void){
+		/*************>>>>>>> STEPS FOLLOWED <<<<<<<<************
 
-    // 3. Configure voltage regulator for high performance
-    PWR->CR |= (3 << 14); // Scale 1 mode (highest performance)
+	1. ENABLE HSE and wait for the HSE to become Ready
+	2. Set the POWER ENABLE CLOCK and VOLTAGE REGULATOR
+	3. Configure the FLASH PREFETCH and the LATENCY Related Settings
+	4. Configure the PRESCALARS HCLK, PCLK1, PCLK2
+	5. Configure the MAIN PLL
+	6. Enable the PLL and wait for it to become ready
+	7. Select the Clock Source and wait for it to be set
 
-    // 4. Enable Flash instruction and data caches and prefetch buffer
-    FLASH->ACR |= (7 << 8);
+	********************************************************/
 
-    // 5. Configure Flash latency (5 wait states for 180 MHz system clock)
-    FLASH->ACR |= (5 << 0);   // Set 5 wait states
+	// Define PLL configuration values
+	#define PLLM    4   // PLLM: Division factor for the main PLL input clock
+	#define PLLN    180 // PLLN: Main PLL multiplication factor
+	#define PLLP    0   // PLLP: Main PLL division factor (PLLP = 2 when PLLP = 0 in register)
 
-    // 6. Configure bus prescalers
-    // AHB prescaler (not divided)
-    RCC->CFGR &= ~(1 << 7);
-    // APB1 prescaler (divided by 4)
-    RCC->CFGR &= ~(7 << 10);
-    RCC->CFGR |= (5 << 10);
-    // APB2 prescaler (divided by 2)
-    RCC->CFGR &= ~(7 << 13);
-    RCC->CFGR |= (4 << 13);
+	// 1. ENABLE HSE and wait for the HSE to become Ready
+	RCC->CR |= RCC_CR_HSEON;
+	while (!(RCC->CR & RCC_CR_HSERDY));
 
-    // 7. Configure PLL settings
-    RCC->PLLCFGR &= ~(0x3F); 								  // Clear PLLM
-    RCC->PLLCFGR &= ~(0x1FF << 6); 							  // Clear PLLN
-    RCC->PLLCFGR &= ~(3 << 16);      						  // Clear PLLP
-    RCC->PLLCFGR |= (PLLM << 0) | (PLLN << 6) | (PLLP << 16); // Set PLLM, PLLN, and PLLP
+	// 2. Set the POWER ENABLE CLOCK and VOLTAGE REGULATOR
+	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+	PWR->CR |= PWR_CR_VOS;
 
-    // 8. Select HSE as PLL source
-    RCC->PLLCFGR |= (1 << 22);
 
-    // 9. Enable PLL
-    RCC->CR |= (1 << 24);
-    // Wait until PLL is locked
-    while(!(RCC->CR & (1 << 25)));
+	// 3. Configure the FLASH PREFETCH and the LATENCY Related Settings
+	FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN | FLASH_ACR_LATENCY_5WS;
 
-    // 10. Select PLL as system clock source
-    RCC->CFGR &= ~(3 << 0); // Clear system clock bits
-    RCC->CFGR |= (2 << 0);  // Set PLL as system clock (SW = 10)
+	// 4. Configure the PRESCALARS HCLK, PCLK1, PCLK2
+	// AHB PR
+	RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
 
-    // 11. Wait for system clock switch confirmation
-    while((RCC->CFGR & 15) != 10);
+	// APB1 PR
+	RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
+
+	// APB2 PR
+	RCC->CFGR |= RCC_CFGR_PPRE2_DIV2;
+
+
+	// 5. Configure the MAIN PLL
+	RCC->PLLCFGR = (PLLM <<0) | (PLLN << 6) | (PLLP <<16) | (RCC_PLLCFGR_PLLSRC_HSE);
+
+	// 6. Enable the PLL and wait for it to become ready
+	RCC->CR |= RCC_CR_PLLON;
+	while (!(RCC->CR & RCC_CR_PLLRDY));
+
+	// 7. Select the Clock Source and wait for it to be set
+	RCC->CFGR |= RCC_CFGR_SW_PLL;
+	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
 }

@@ -3,7 +3,8 @@
 	controls the LED on PA5
 */
 
-void initLED(void) {
+void initLED(void)
+{
     // Enable clock for GPIOA (AHB1 peripheral)
     RCC->AHB1ENR |= (1 << 0);  // Bit 0 of AHB1ENR enables GPIOA
 
@@ -23,6 +24,8 @@ void initLED(void) {
 }
 
 
-void toggleLED(void){
+void toggleLED(void)
+{
     GPIOA->ODR ^= (1 << 5);  // Toggle PA5
 }
+
